@@ -1,3 +1,6 @@
 /fabfile.pyc
 /config
 /images
+/venv
+/build
+/target
