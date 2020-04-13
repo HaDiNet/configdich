@@ -40,7 +40,7 @@ def generate_config(options):
                 config_file_templates[template_name] = config_file.lstat()
 
     # Load Jinja Environment
-    template_env = Environment(loader=ConfigdichLoader(target_dir))
+    template_env = Environment(loader=ConfigdichLoader(target_dir),keep_trailing_newline=True)
 
     build_dir = path('config').joinpath(options.host)
     # Clean out the build dir
@@ -79,23 +79,27 @@ def generate_image(options):
     #image_builder_tar_path = get_image_builder(config)
     with pushd(build_dir):
         if not path('openwrt').exists():
-            sh('git clone git://git.openwrt.org/openwrt.git')
+            sh('git clone git://git.openwrt.org/openwrt/openwrt.git')
         with pushd('openwrt'):
             try:
+                path('files').rmtree()
+                path('.config').remove()
+                sh('git pull')
+                sh('git checkout %s' % config['openwrt_version'])
                 sh('./scripts/feeds update packages')
                 sh('./scripts/feeds install -a -p packages')
                 path.copytree(host_config_files_path, 'files')
-                path('files/buildroot-config').move('.config')
+                path('files/buildroot-config').copy('.config')
                 sh('make defconfig')
                 sh('make prereq')
-                sh('make -j5 # V=s')
+                sh('make download -j5')
+                sh('make -j5  V=s')
 
                 # Copy image to target location
                 built_image_path = path('bin').walkfiles(config['openwrt_image_builder_image_filename']).next()
                 built_image_path.copy(host_image_path)
             finally:
-                path('files').rmtree()
-                path('.config').remove()
+                pass
 
 @host_task
 def flash(options):
@@ -121,7 +125,7 @@ def flash(options):
     while True:
         read_line = stdout.readline()
         print(read_line, end="")
-        if "Rebooting system..." in read_line:
+        if "Closing all shell sessions." in read_line or "Rebooting system..." in read_line:
             ssh.close()
             break
 
