@@ -84,7 +84,7 @@ def generate_image(options):
             try:
                 path('files').rmtree()
                 path('.config').remove()
-                sh('git pull')
+                sh('git fetch')
                 sh('git checkout %s' % config['openwrt_version'])
                 sh('./scripts/feeds update packages')
                 sh('./scripts/feeds install -a -p packages')
